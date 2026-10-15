@@ -20,6 +20,13 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Hide the browser's scrollbar; the right-hand ruler shows scroll position instead */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar { display: none; }
+
 /* Lenis (smooth scroll) base rules */
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
