@@ -554,14 +554,23 @@ h2 em { color: #c9bcff; }
   .nav-inner { justify-content: space-between; }
   .logo { padding: 0 16px; }
   .bar span:last-child { display: none; }
+  /* The 3D object owns a band at the top of each screen (see layout() in index.html);
+     the text starts below it so the two never overlap. */
   .section-body {
-    align-items: flex-end;
-    padding-bottom: 12vh;
+    align-items: flex-start;
+    padding-top: 36vh;
+    padding-bottom: 6vh;
   }
+  .hero .section-body { padding-top: calc(var(--nav-h) + 30vh); }
   .section.right .section-body { justify-content: flex-start; }
-  .section.center .section-body { align-items: center; padding-bottom: 0; }
-  .content { text-shadow: 0 2px 24px rgba(5, 6, 10, 0.9); }
-  .lead { font-size: 16px; }
+  .section.center .section-body { align-items: center; padding-top: 0; }
+  h1 { font-size: clamp(38px, 11vw, 52px); }
+  h2 { font-size: clamp(32px, 9.5vw, 44px); }
+  h2.big { font-size: clamp(38px, 11vw, 52px); }
+  .eyebrow { margin-bottom: 14px; }
+  h1, h2 { margin-bottom: 16px; }
+  .lead { font-size: 16px; margin-bottom: 20px; }
+  .actions { margin-bottom: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

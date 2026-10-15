@@ -572,12 +572,14 @@
       const visibleWidth = SPACING * aspect;
       const mobile = aspect < 0.9 || window.innerWidth <= 820;
       const offsetX = mobile ? 0 : visibleWidth * 0.23;
-      const lift = mobile ? SPACING * 0.25 : 0;
-      const scale = mobile ? Math.min(0.75, visibleWidth / 5) : Math.min(1, aspect / 1.35);
+      // Phones: each object sits centred in a band at the top of its screen, small enough to fit it;
+      // style.css pushes the text down below that band so the two never overlap.
+      const scale = mobile ? Math.min(0.42, visibleWidth / 6.4) : Math.min(1, aspect / 1.35);
 
       sections.forEach(({ group, side }, i) => {
+        const lift = mobile ? SPACING * (i === 0 ? 0.29 : 0.24) : 0;
         group.position.set(side * offsetX, -i * SPACING + lift, 0);
-        group.scale.setScalar(scale);
+        group.scale.setScalar(mobile && i === 0 ? scale * 0.82 : scale);
       });
     }
 
