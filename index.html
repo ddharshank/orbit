@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orbit — A Three.js Experience</title>
+  <meta name="description" content="An animated, scroll-driven WebGL site built with three.js: custom shaders, physical materials, instancing and post-processing.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="loader" aria-hidden="true">
+    <span>Loading scene</span>
+    <div class="loader-bar"><i></i></div>
+  </div>
+
+  <canvas class="webgl" id="webgl"></canvas>
+
+  <header class="nav">
+    <a class="logo" href="#hero">ORBIT<span>.</span></a>
+    <nav>
+      <a href="#materials">Materials</a>
+      <a href="#instancing">Instancing</a>
+      <a href="#post">Post&#8209;FX</a>
+    </nav>
+    <a class="nav-cta" href="https://threejs.org/manual/" target="_blank" rel="noopener">Manual ↗</a>
+  </header>
+
+  <div class="progress"><i id="progress"></i></div>
+  <aside class="dots" id="dots" aria-label="Sections"></aside>
+
+  <main>
+    <section id="hero" class="section" data-label="Intro">
+      <div class="content">
+        <p class="eyebrow reveal">Three.js · WebGL · Real-time</p>
+        <h1 class="reveal" style="--d:.1s">Build worlds<br>that <em>move</em>.</h1>
+        <p class="lead reveal" style="--d:.2s">
+          A scroll-driven tour of what you can make in the browser with three.js.
+          Every object on this page is rendered live on your GPU at 60&nbsp;frames a second.
+        </p>
+        <div class="actions reveal" style="--d:.3s">
+          <a class="btn primary" href="#materials">Start exploring</a>
+          <a class="btn ghost" href="https://threejs.org/manual/" target="_blank" rel="noopener">Read the manual</a>
+        </div>
+        <ul class="chips reveal" style="--d:.4s">
+          <li>ShaderMaterial</li><li>Simplex noise</li><li>84k triangles</li>
+        </ul>
+      </div>
+      <div class="scroll-hint" aria-hidden="true"><span></span>Scroll</div>
+    </section>
+
+    <section id="materials" class="section right" data-label="Materials">
+      <div class="content">
+        <p class="eyebrow reveal"><b>01</b> Materials &amp; light</p>
+        <h2 class="reveal" style="--d:.1s">Surfaces that catch the light.</h2>
+        <p class="lead reveal" style="--d:.2s">
+          <code>MeshPhysicalMaterial</code> adds clearcoat and thin-film iridescence on top of standard PBR shading.
+          Light comes from a prefiltered environment map made with <code>PMREMGenerator</code>, so reflections stay soft and physically plausible.
+        </p>
+        <ul class="chips reveal" style="--d:.3s">
+          <li>PBR</li><li>Iridescence</li><li>Environment maps</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="instancing" class="section" data-label="Instancing">
+      <div class="content">
+        <p class="eyebrow reveal"><b>02</b> Instancing</p>
+        <h2 class="reveal" style="--d:.1s">1,024 columns. One draw call.</h2>
+        <p class="lead reveal" style="--d:.2s">
+          <code>InstancedMesh</code> sends thousands of copies of the same geometry to the GPU together.
+          Each column gets its own matrix and colour every frame. Move your cursor over the grid to push it up.
+        </p>
+        <ul class="chips reveal" style="--d:.3s">
+          <li>InstancedMesh</li><li>Raycasting</li><li>Per-instance color</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="post" class="section right" data-label="Post-FX">
+      <div class="content">
+        <p class="eyebrow reveal"><b>03</b> Post-processing</p>
+        <h2 class="reveal" style="--d:.1s">Make light bleed.</h2>
+        <p class="lead reveal" style="--d:.2s">
+          <code>EffectComposer</code> renders the scene to a texture first, then runs full-screen passes over it.
+          An <code>UnrealBloomPass</code> picks out the brightest pixels and spreads them into a glow.
+        </p>
+        <ul class="chips reveal" style="--d:.3s">
+          <li>EffectComposer</li><li>UnrealBloomPass</li><li>HDR colour</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="outro" class="section center" data-label="Start">
+      <div class="content">
+        <p class="eyebrow reveal">Your turn</p>
+        <h2 class="big reveal" style="--d:.1s">Start with<br>a single cube.</h2>
+        <p class="lead reveal" style="--d:.2s">
+          Every scene here started as a scene, a camera and a renderer. The manual walks you through it, one step at a time.
+        </p>
+        <div class="actions reveal" style="--d:.3s">
+          <a class="btn primary" href="https://threejs.org/manual/#en/fundamentals" target="_blank" rel="noopener">Fundamentals ↗</a>
+          <a class="btn ghost" href="#hero">Back to top</a>
+        </div>
+      </div>
+      <footer class="footer">Built with three.js r170</footer>
+    </section>
+  </main>
+
+  <script>
+    // If the scene hasn't started after 10s (no WebGL, or the CDN is blocked), say so instead of spinning forever.
+    setTimeout(function () {
+      if (document.body.classList.contains('ready')) return;
+      var label = document.querySelector('.loader span');
+      label.textContent = 'Could not start WebGL. Check your connection or try another browser.';
+      document.querySelector('.loader-bar').style.display = 'none';
+    }, 10000);
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    /* ---------- Shaders ---------- */
+
+    // 3D simplex noise by Ashima Arts / Stefan Gustavson (MIT).
+    const simplexNoise = /* glsl */ `
+    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
+    vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+    float snoise(vec3 v) {
+      const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+
+      vec3 i = floor(v + dot(v, C.yyy));
+      vec3 x0 = v - i + dot(i, C.xxx);
+
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min(g.xyz, l.zxy);
+      vec3 i2 = max(g.xyz, l.zxy);
+
+      vec3 x1 = x0 - i1 + C.xxx;
+      vec3 x2 = x0 - i2 + C.yyy;
+      vec3 x3 = x0 - D.yyy;
+
+      i = mod289(i);
+      vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+
+      float n_ = 0.142857142857;
+      vec3 ns = n_ * D.wyz - D.xzx;
+
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_);
+
+      vec4 x = x_ * ns.x + ns.yyyy;
+      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+
+      vec4 b0 = vec4(x.xy, y.xy);
+      vec4 b1 = vec4(x.zw, y.zw);
+      vec4 s0 = floor(b0) * 2.0 + 1.0;
+      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+
+      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+
+      vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+
+      vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+    }
+    `;
+
+    // Hero blob: a unit sphere pushed in and out along its normal by layered noise.
+    // Normals are recomputed from two neighbouring displaced points so lighting follows the bumps.
+    const blobVertex = /* glsl */ `
+    uniform float uTime;
+    uniform float uAmp;
+    uniform float uFreq;
+
+    varying vec3 vNormal;
+    varying vec3 vViewDir;
+    varying float vDisp;
+
+    ${simplexNoise}
+
+    float displacement(vec3 p) {
+      float n = snoise(p * uFreq + vec3(0.0, uTime * 0.25, uTime * 0.15));
+      n += 0.35 * snoise(p * uFreq * 2.6 - vec3(uTime * 0.35));
+      return n * uAmp;
+    }
+
+    vec3 orthogonal(vec3 v) {
+      return normalize(abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0) : vec3(0.0, -v.z, v.y));
+    }
+
+    void main() {
+      vec3 n = normalize(position);
+      vec3 t = orthogonal(n);
+      vec3 b = cross(n, t);
+      float eps = 0.01;
+
+      vec3 nA = normalize(n + t * eps);
+      vec3 nB = normalize(n + b * eps);
+
+      float d = displacement(n);
+      vec3 p = n * (1.0 + d);
+      vec3 pA = nA * (1.0 + displacement(nA));
+      vec3 pB = nB * (1.0 + displacement(nB));
+
+      vec3 displacedNormal = normalize(cross(pA - p, pB - p));
+
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      vNormal = normalize(normalMatrix * displacedNormal);
+      vViewDir = normalize(-mv.xyz);
+      vDisp = d;
+      gl_Position = projectionMatrix * mv;
+    }
+    `;
+
+    const blobFragment = /* glsl */ `
+    uniform vec3 uColorA;
+    uniform vec3 uColorB;
+    uniform vec3 uRim;
+
+    varying vec3 vNormal;
+    varying vec3 vViewDir;
+    varying float vDisp;
+
+    void main() {
+      vec3 n = normalize(vNormal);
+      vec3 v = normalize(vViewDir);
+      vec3 l = normalize(vec3(0.5, 0.8, 0.6));
+
+      float diffuse = max(dot(n, l), 0.0);
+      float spec = pow(max(dot(reflect(-l, n), v), 0.0), 40.0);
+      float fresnel = pow(1.0 - max(dot(n, v), 0.0), 2.4);
+
+      vec3 base = mix(uColorA, uColorB, smoothstep(-0.2, 0.3, vDisp));
+      vec3 col = base * (0.18 + 0.82 * diffuse);
+      col += uRim * fresnel * 1.6;
+      col += vec3(spec) * 0.8;
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+    `;
+
+    // Background particles: soft round sprites that drift slowly.
+    const particlesVertex = /* glsl */ `
+    uniform float uTime;
+    uniform float uSize;
+    uniform float uPixelRatio;
+
+    attribute float aScale;
+    attribute float aSeed;
+    attribute vec3 aColor;
+
+    varying vec3 vColor;
+    varying float vTwinkle;
+
+    void main() {
+      vec3 p = position;
+      float phase = aSeed * 6.2831;
+      p.x += sin(uTime * 0.2 + phase) * 0.25;
+      p.y += cos(uTime * 0.15 + phase * 1.3) * 0.25;
+
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = uSize * aScale * uPixelRatio / -mv.z;
+
+      vColor = aColor;
+      vTwinkle = 0.55 + 0.45 * sin(uTime * (1.0 + aSeed * 2.0) + phase);
+    }
+    `;
+
+    const particlesFragment = /* glsl */ `
+    varying vec3 vColor;
+    varying float vTwinkle;
+
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      float alpha = smoothstep(0.5, 0.0, d);
+      alpha *= alpha * vTwinkle;
+      gl_FragColor = vec4(vColor, alpha);
+    }
+    `;
+
+    /* ---------- Scene ---------- */
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const TIME_SCALE = reduceMotion ? 0.25 : 1;
+
+    /* ------------------------------------------------------------------ */
+    /* Renderer, scene, camera                                             */
+    /* ------------------------------------------------------------------ */
+
+    const canvas = document.getElementById('webgl');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#05060a');
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environmentIntensity = 0.9;
+    pmrem.dispose();
+
+    const CAMERA_Z = 8;
+    const FOV = 40;
+    const camera = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = CAMERA_Z;
+
+    // The rig moves vertically with scroll; the camera inside it sways with the pointer.
+    const rig = new THREE.Group();
+    rig.add(camera);
+    scene.add(rig);
+
+    // World units visible top-to-bottom at z = 0. One section of the page = one screen of world.
+    const SPACING = 2 * CAMERA_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+
+    const keyLight = new THREE.DirectionalLight('#ffffff', 1.4);
+    keyLight.position.set(3, 4, 5);
+    scene.add(keyLight);
+
+    /* ------------------------------------------------------------------ */
+    /* Section 0 — Noise blob (ShaderMaterial)                            */
+    /* ------------------------------------------------------------------ */
+
+    const blobMaterial = new THREE.ShaderMaterial({
+      vertexShader: blobVertex,
+      fragmentShader: blobFragment,
+      uniforms: {
+        uTime: { value: 0 },
+        uAmp: { value: 0.22 },
+        uFreq: { value: 1.3 },
+        uColorA: { value: new THREE.Color('#2a1a8a') },
+        uColorB: { value: new THREE.Color('#29d3ff') },
+        uRim: { value: new THREE.Color('#ff4fd8') },
+      },
+    });
+    const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 64), blobMaterial);
+    blob.scale.setScalar(1.35);
+
+    const halo = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(2.25, 2),
+      new THREE.MeshBasicMaterial({ color: '#7c5cff', wireframe: true, transparent: true, opacity: 0.08 })
+    );
+
+    const heroGroup = new THREE.Group();
+    heroGroup.add(blob, halo);
+
+    /* ------------------------------------------------------------------ */
+    /* Section 1 — Iridescent torus knot (MeshPhysicalMaterial)           */
+    /* ------------------------------------------------------------------ */
+
+    const knot = new THREE.Mesh(
+      new THREE.TorusKnotGeometry(0.85, 0.28, 320, 48),
+      new THREE.MeshPhysicalMaterial({
+        color: '#8f7dff',
+        metalness: 0.85,
+        roughness: 0.16,
+        clearcoat: 1,
+        clearcoatRoughness: 0.08,
+        iridescence: 1,
+        iridescenceIOR: 1.6,
+        iridescenceThicknessRange: [120, 820],
+      })
+    );
+
+    const cage = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.95, 1),
+      new THREE.MeshBasicMaterial({ color: '#9fb0ff', wireframe: true, transparent: true, opacity: 0.12 })
+    );
+
+    const satellites = ['#29d3ff', '#ff4fd8', '#ffd166'].map((hex, i) => {
+      const s = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07, 24, 24),
+        new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(3) })
+      );
+      s.userData = { radius: 1.6 + i * 0.22, speed: 0.7 + i * 0.25, tilt: i * 1.1 };
+      return s;
+    });
+
+    const materialsGroup = new THREE.Group();
+    materialsGroup.add(knot, cage, ...satellites);
+
+    /* ------------------------------------------------------------------ */
+    /* Section 2 — Interactive column grid (InstancedMesh)                */
+    /* ------------------------------------------------------------------ */
+
+    const GRID = 32;
+    const GAP = 0.125;
+    const columnGeometry = new THREE.BoxGeometry(0.095, 1, 0.095);
+    columnGeometry.translate(0, 0.5, 0); // grow up from the floor
+    const columns = new THREE.InstancedMesh(
+      columnGeometry,
+      new THREE.MeshStandardMaterial({ metalness: 0.2, roughness: 0.5, envMapIntensity: 0.35 }),
+      GRID * GRID
+    );
+    columns.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    columns.position.y = -0.75;
+    columns.rotation.set(0.55, -0.7, 0);
+    columns.scale.setScalar(0.72);
+
+    const gridGroup = new THREE.Group();
+    gridGroup.add(columns);
+
+    const columnLow = new THREE.Color('#0d0830');
+    const columnMid = new THREE.Color('#5a3cff');
+    const columnHigh = new THREE.Color('#29d3ff').multiplyScalar(1.6);
+    const dummy = new THREE.Object3D();
+    const tmpColor = new THREE.Color();
+
+    const gridHover = { x: 0, z: 0, strength: 0, target: 0 };
+    const raycaster = new THREE.Raycaster();
+    const floorLocal = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const floorWorld = new THREE.Plane();
+    const hit = new THREE.Vector3();
+    const GRID_HALF = (GRID * GAP) / 2;
+
+    function updateGrid(t) {
+      // Find where the pointer meets the grid floor, in the grid's own coordinates.
+      raycaster.setFromCamera(pointer.ndc, camera);
+      floorWorld.copy(floorLocal).applyMatrix4(columns.matrixWorld);
+      gridHover.target = 0;
+      if (raycaster.ray.intersectPlane(floorWorld, hit)) {
+        columns.worldToLocal(hit);
+        if (Math.abs(hit.x) < GRID_HALF + 0.4 && Math.abs(hit.z) < GRID_HALF + 0.4) {
+          gridHover.x += (hit.x - gridHover.x) * 0.15;
+          gridHover.z += (hit.z - gridHover.z) * 0.15;
+          gridHover.target = 1;
+        }
+      }
+      gridHover.strength += (gridHover.target - gridHover.strength) * 0.06;
+
+      let i = 0;
+      for (let ix = 0; ix < GRID; ix++) {
+        for (let iz = 0; iz < GRID; iz++) {
+          const x = (ix - (GRID - 1) / 2) * GAP;
+          const z = (iz - (GRID - 1) / 2) * GAP;
+          const d = Math.sqrt(x * x + z * z);
+
+          let h = 0.12 + 0.5 * (0.5 + 0.5 * Math.sin(d * 2.4 - t * 2.0)) * (0.75 + 0.25 * Math.cos(x * 1.3 + t * 0.7));
+          const hx = x - gridHover.x;
+          const hz = z - gridHover.z;
+          h += gridHover.strength * 1.5 * Math.exp(-(hx * hx + hz * hz) * 2.2);
+
+          dummy.position.set(x, 0, z);
+          dummy.scale.set(1, h, 1);
+          dummy.updateMatrix();
+          columns.setMatrixAt(i, dummy.matrix);
+
+          const k = Math.min(h / 1.6, 1);
+          if (k < 0.5) tmpColor.copy(columnLow).lerp(columnMid, k * 2);
+          else tmpColor.copy(columnMid).lerp(columnHigh, (k - 0.5) * 2);
+          columns.setColorAt(i, tmpColor);
+          i++;
+        }
+      }
+      columns.instanceMatrix.needsUpdate = true;
+      columns.instanceColor.needsUpdate = true;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Section 3 — Glowing gyroscope rings (bloom)                        */
+    /* ------------------------------------------------------------------ */
+
+    const ringsGroup = new THREE.Group();
+    const ringPalette = ['#7c5cff', '#29d3ff', '#ff4fd8', '#ffd166', '#5cffb1'];
+    const rings = ringPalette.map((hex, i) => {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.55 + i * 0.3, 0.016 + i * 0.003, 16, 256),
+        new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(1.5) })
+      );
+      ring.rotation.set(i * 0.9, i * 0.5, 0);
+      ring.userData.spin = new THREE.Vector3(0.3 + i * 0.12, 0.2 + (4 - i) * 0.1, (i % 2 ? 1 : -1) * 0.15);
+      ringsGroup.add(ring);
+      return ring;
+    });
+    const core = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.22, 3),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffffff').multiplyScalar(2) })
+    );
+    ringsGroup.add(core);
+
+    /* ------------------------------------------------------------------ */
+    /* Layout: one object per page section, alternating sides             */
+    /* ------------------------------------------------------------------ */
+
+    const sections = [
+      { group: heroGroup, side: 1 },
+      { group: materialsGroup, side: -1 },
+      { group: gridGroup, side: 1 },
+      { group: ringsGroup, side: -1 },
+      { group: new THREE.Group(), side: 0 }, // outro: particles only
+    ];
+    sections.forEach(({ group }) => scene.add(group));
+
+    function layout() {
+      const aspect = window.innerWidth / window.innerHeight;
+      const visibleWidth = SPACING * aspect;
+      const mobile = aspect < 0.9 || window.innerWidth <= 820;
+      const offsetX = mobile ? 0 : visibleWidth * 0.23;
+      const lift = mobile ? SPACING * 0.25 : 0;
+      const scale = mobile ? Math.min(0.75, visibleWidth / 5) : Math.min(1, aspect / 1.35);
+
+      sections.forEach(({ group, side }, i) => {
+        group.position.set(side * offsetX, -i * SPACING + lift, 0);
+        group.scale.setScalar(scale);
+      });
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Particles spanning the whole page                                   */
+    /* ------------------------------------------------------------------ */
+
+    const PARTICLE_COUNT = window.innerWidth < 820 ? 1800 : 3500;
+    const positions = new Float32Array(PARTICLE_COUNT * 3);
+    const colors = new Float32Array(PARTICLE_COUNT * 3);
+    const scales = new Float32Array(PARTICLE_COUNT);
+    const seeds = new Float32Array(PARTICLE_COUNT);
+    const particlePalette = ['#7c5cff', '#29d3ff', '#ff4fd8', '#ffffff', '#ffffff'].map((c) => new THREE.Color(c));
+    const top = SPACING;
+    const bottom = -SPACING * (sections.length - 1) - SPACING;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 26;
+      positions[i * 3 + 1] = bottom + Math.random() * (top - bottom);
+      positions[i * 3 + 2] = -14 + Math.random() * 16;
+      const c = particlePalette[Math.floor(Math.random() * particlePalette.length)];
+      colors.set([c.r, c.g, c.b], i * 3);
+      scales[i] = 0.3 + Math.random();
+      seeds[i] = Math.random();
+    }
+
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+    particleGeometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1));
+    particleGeometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+
+    const particleMaterial = new THREE.ShaderMaterial({
+      vertexShader: particlesVertex,
+      fragmentShader: particlesFragment,
+      uniforms: {
+        uTime: { value: 0 },
+        uSize: { value: 70 },
+        uPixelRatio: { value: renderer.getPixelRatio() },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    particles.frustumCulled = false;
+    scene.add(particles);
+
+    /* ------------------------------------------------------------------ */
+    /* Post-processing                                                     */
+    /* ------------------------------------------------------------------ */
+
+    const composer = new EffectComposer(renderer);
+    composer.setPixelRatio(renderer.getPixelRatio());
+    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.45, 0.85);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+
+    /* ------------------------------------------------------------------ */
+    /* Input: pointer + scroll                                             */
+    /* ------------------------------------------------------------------ */
+
+    const pointer = {
+      ndc: new THREE.Vector2(9, 9), // off-screen until the pointer moves
+      smooth: new THREE.Vector2(),
+      speed: 0,
+    };
+
+    window.addEventListener('pointermove', (e) => {
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = -(e.clientY / window.innerHeight) * 2 + 1;
+      pointer.speed += Math.hypot(x - pointer.ndc.x, y - pointer.ndc.y) * (pointer.ndc.x > 2 ? 0 : 1);
+      pointer.ndc.set(x, y);
+    });
+    document.addEventListener('pointerleave', () => pointer.ndc.set(9, 9));
+
+    const scroll = { current: window.scrollY, previous: window.scrollY, velocity: 0 };
+    const sectionEls = [...document.querySelectorAll('.section')];
+    const progressBar = document.getElementById('progress');
+    const dotsEl = document.getElementById('dots');
+
+    const dots = sectionEls.map((section) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.label = section.dataset.label;
+      button.setAttribute('aria-label', `Go to ${section.dataset.label}`);
+      button.addEventListener('click', () => section.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }));
+      dotsEl.appendChild(button);
+      return button;
+    });
+
+    let activeIndex = -1;
+    function updateDom(sectionProgress) {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      progressBar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+      const index = Math.min(sections.length - 1, Math.max(0, Math.round(sectionProgress)));
+      if (index !== activeIndex) {
+        dots[activeIndex]?.classList.remove('active');
+        dots[index].classList.add('active');
+        activeIndex = index;
+      }
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add('in')),
+      { threshold: 0.2 }
+    );
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    /* ------------------------------------------------------------------ */
+    /* Resize                                                              */
+    /* ------------------------------------------------------------------ */
+
+    function onResize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      const pr = Math.min(window.devicePixelRatio, 2);
+      renderer.setPixelRatio(pr);
+      renderer.setSize(w, h);
+      composer.setPixelRatio(pr);
+      composer.setSize(w, h);
+      particleMaterial.uniforms.uPixelRatio.value = pr;
+      layout();
+    }
+    window.addEventListener('resize', onResize);
+    layout();
+
+    /* ------------------------------------------------------------------ */
+    /* Animation loop                                                      */
+    /* ------------------------------------------------------------------ */
+
+    const clock = new THREE.Clock();
+    const lookTarget = new THREE.Vector3();
+    let elapsed = 0;
+    let firstFrame = true;
+
+    function damp(current, target, lambda, dt) {
+      return current + (target - current) * (1 - Math.exp(-lambda * dt));
+    }
+
+    function tick() {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      elapsed += dt * TIME_SCALE;
+      const t = elapsed;
+
+      // Scroll → camera height. Sections are one viewport tall, so one viewport of scroll = SPACING world units.
+      const sectionHeight = sectionEls[0].offsetHeight || window.innerHeight;
+      scroll.current = reduceMotion ? window.scrollY : damp(scroll.current, window.scrollY, 7, dt);
+      scroll.velocity = (scroll.current - scroll.previous) / Math.max(dt, 1e-4);
+      scroll.previous = scroll.current;
+      const sectionProgress = scroll.current / sectionHeight;
+      rig.position.y = -sectionProgress * SPACING;
+
+      // Pointer parallax.
+      const px = Math.abs(pointer.ndc.x) > 1.5 ? 0 : pointer.ndc.x;
+      const py = Math.abs(pointer.ndc.y) > 1.5 ? 0 : pointer.ndc.y;
+      pointer.smooth.x = damp(pointer.smooth.x, px, 3, dt);
+      pointer.smooth.y = damp(pointer.smooth.y, py, 3, dt);
+      camera.position.x = pointer.smooth.x * 0.45;
+      camera.position.y = pointer.smooth.y * 0.3;
+      lookTarget.set(0, rig.position.y, 0);
+      camera.lookAt(lookTarget);
+      pointer.speed *= Math.exp(-4 * dt);
+
+      // Only animate and draw objects near the camera.
+      sections.forEach(({ group }) => {
+        group.visible = Math.abs(group.position.y - rig.position.y) < SPACING * 1.4;
+      });
+
+      const scrollKick = Math.min(Math.abs(scroll.velocity) / 3000, 0.25);
+
+      if (heroGroup.visible) {
+        blobMaterial.uniforms.uTime.value = t;
+        const targetAmp = 0.22 + scrollKick + Math.min(pointer.speed * 0.25, 0.2);
+        blobMaterial.uniforms.uAmp.value = damp(blobMaterial.uniforms.uAmp.value, targetAmp, 4, dt);
+        blob.rotation.y = t * 0.12;
+        blob.rotation.x = Math.sin(t * 0.2) * 0.2;
+        halo.rotation.y = -t * 0.05;
+        halo.rotation.z = t * 0.03;
+        heroGroup.rotation.x = pointer.smooth.y * -0.15;
+        heroGroup.rotation.y = pointer.smooth.x * 0.25;
+      }
+
+      if (materialsGroup.visible) {
+        knot.rotation.x = t * 0.25 + sectionProgress * 0.8;
+        knot.rotation.y = t * 0.35;
+        cage.rotation.y = -t * 0.1;
+        cage.rotation.x = t * 0.06;
+        satellites.forEach((s) => {
+          const { radius, speed, tilt } = s.userData;
+          const a = t * speed + tilt * 2;
+          s.position.set(Math.cos(a) * radius, Math.sin(a) * radius * Math.sin(tilt + 0.6), Math.sin(a) * radius * Math.cos(tilt));
+        });
+      }
+
+      if (gridGroup.visible) updateGrid(t);
+
+      if (ringsGroup.visible) {
+        rings.forEach((ring) => {
+          ring.rotation.x += ring.userData.spin.x * dt * TIME_SCALE;
+          ring.rotation.y += ring.userData.spin.y * dt * TIME_SCALE;
+          ring.rotation.z += ring.userData.spin.z * dt * TIME_SCALE;
+        });
+        core.scale.setScalar(1 + Math.sin(t * 2.2) * 0.12);
+        ringsGroup.rotation.y = pointer.smooth.x * 0.3;
+      }
+
+      particleMaterial.uniforms.uTime.value = t;
+      particles.rotation.y = pointer.smooth.x * 0.04;
+
+      updateDom(sectionProgress);
+      composer.render();
+
+      if (firstFrame) {
+        firstFrame = false;
+        document.body.classList.add('ready');
+      }
+      requestAnimationFrame(tick);
+    }
+
+    tick();
+  </script>
+</body>
+</html>
