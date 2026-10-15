@@ -7,13 +7,14 @@
   <meta name="description" content="An animated, scroll-driven WebGL site built with three.js: custom shaders, physical materials, instancing and post-processing.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script type="importmap">
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.mjs"
       }
     }
   </script>
@@ -26,91 +27,128 @@
 
   <canvas class="webgl" id="webgl"></canvas>
 
+  <!-- Fixed guide lines framing the content column -->
+  <div class="frame" aria-hidden="true"></div>
+
+  <!-- Right rail: page-percentage ruler that slides past a fixed needle, plus where you are and what's next -->
+  <aside class="rail" aria-label="Page position">
+    <div class="rail-labels" id="rail-labels"></div>
+    <svg class="rail-dir" id="rail-dir" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 5l6 6 6-6M6 12l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" />
+    </svg>
+    <div class="rail-ruler" aria-hidden="true"><div class="rail-tape" id="rail-tape"></div></div>
+    <div class="rail-needle" id="rail-needle" aria-hidden="true"><span id="readout">000%</span></div>
+  </aside>
+
   <header class="nav">
-    <a class="logo" href="#hero">ORBIT<span>.</span></a>
-    <nav>
-      <a href="#materials">Materials</a>
-      <a href="#instancing">Instancing</a>
-      <a href="#post">Post&#8209;FX</a>
-    </nav>
-    <a class="nav-cta" href="https://threejs.org/manual/" target="_blank" rel="noopener">Manual ↗</a>
+    <div class="nav-inner">
+      <a class="logo" href="#hero">ORBIT<span>.</span></a>
+      <nav class="nav-links">
+        <a href="#hero" data-index="0">Intro</a>
+        <a href="#materials" data-index="1">Materials</a>
+        <a href="#instancing" data-index="2">Instancing</a>
+        <a href="#post" data-index="3">Post&#8209;FX</a>
+      </nav>
+      <a class="nav-cell" href="https://threejs.org/manual/" target="_blank" rel="noopener">Manual ↗</a>
+      <a class="nav-cta" href="#outro">Get started</a>
+    </div>
   </header>
 
   <div class="progress"><i id="progress"></i></div>
-  <aside class="dots" id="dots" aria-label="Sections"></aside>
 
   <main>
-    <section id="hero" class="section" data-label="Intro">
-      <div class="content">
-        <p class="eyebrow reveal">Three.js · WebGL · Real-time</p>
-        <h1 class="reveal" style="--d:.1s">Build worlds<br>that <em>move</em>.</h1>
-        <p class="lead reveal" style="--d:.2s">
-          A scroll-driven tour of what you can make in the browser with three.js.
-          Every object on this page is rendered live on your GPU at 60&nbsp;frames a second.
-        </p>
-        <div class="actions reveal" style="--d:.3s">
-          <a class="btn primary" href="#materials">Start exploring</a>
-          <a class="btn ghost" href="https://threejs.org/manual/" target="_blank" rel="noopener">Read the manual</a>
+    <section id="hero" class="section hero" data-label="Intro">
+      <div class="section-body">
+        <div class="content">
+          <p class="eyebrow reveal">Three.js · WebGL · Real-time</p>
+          <h1 class="reveal" style="--d:.1s">Build worlds<br>that <em>move</em>.</h1>
+          <p class="lead reveal" style="--d:.2s">
+            A scroll-driven tour of what you can make in the browser with three.js.
+            Every object on this page is rendered live on your GPU at 60&nbsp;frames a second.
+          </p>
+          <div class="actions reveal" style="--d:.3s">
+            <a class="btn primary" href="#materials">Start exploring</a>
+            <a class="btn ghost" href="https://threejs.org/manual/" target="_blank" rel="noopener">Read the manual</a>
+          </div>
+          <ul class="chips reveal" style="--d:.4s">
+            <li>ShaderMaterial</li><li>Simplex noise</li><li>84k triangles</li>
+          </ul>
         </div>
-        <ul class="chips reveal" style="--d:.4s">
-          <li>ShaderMaterial</li><li>Simplex noise</li><li>84k triangles</li>
-        </ul>
       </div>
-      <div class="scroll-hint" aria-hidden="true"><span></span>Scroll</div>
+      <div class="ticker" aria-hidden="true">
+        <i class="cross cross-l"></i><i class="cross cross-r"></i>
+        <div class="ticker-track" id="ticker">
+          <span>ShaderMaterial</span><span>MeshPhysicalMaterial</span><span>InstancedMesh</span><span>EffectComposer</span>
+          <span>UnrealBloomPass</span><span>Raycaster</span><span>PMREMGenerator</span><span>BufferGeometry</span>
+          <span>Simplex noise</span><span>60 FPS</span>
+        </div>
+      </div>
     </section>
 
     <section id="materials" class="section right" data-label="Materials">
-      <div class="content">
-        <p class="eyebrow reveal"><b>01</b> Materials &amp; light</p>
-        <h2 class="reveal" style="--d:.1s">Surfaces that catch the light.</h2>
-        <p class="lead reveal" style="--d:.2s">
-          <code>MeshPhysicalMaterial</code> adds clearcoat and thin-film iridescence on top of standard PBR shading.
-          Light comes from a prefiltered environment map made with <code>PMREMGenerator</code>, so reflections stay soft and physically plausible.
-        </p>
-        <ul class="chips reveal" style="--d:.3s">
-          <li>PBR</li><li>Iridescence</li><li>Environment maps</li>
-        </ul>
+      <i class="cross cross-l"></i><i class="cross cross-r"></i>
+      <div class="bar"><span><b>01</b> / Materials &amp; light</span><span>MeshPhysicalMaterial — iridescence</span></div>
+      <div class="section-body">
+        <div class="content">
+          <h2 class="reveal" style="--d:.1s">Surfaces that <em>catch</em> the light.</h2>
+          <p class="lead reveal" style="--d:.2s">
+            <code>MeshPhysicalMaterial</code> adds clearcoat and thin-film iridescence on top of standard PBR shading.
+            Light comes from a prefiltered environment map made with <code>PMREMGenerator</code>, so reflections stay soft and physically plausible.
+          </p>
+          <ul class="chips reveal" style="--d:.3s">
+            <li>PBR</li><li>Iridescence</li><li>Environment maps</li>
+          </ul>
+        </div>
       </div>
     </section>
 
     <section id="instancing" class="section" data-label="Instancing">
-      <div class="content">
-        <p class="eyebrow reveal"><b>02</b> Instancing</p>
-        <h2 class="reveal" style="--d:.1s">1,024 columns. One draw call.</h2>
-        <p class="lead reveal" style="--d:.2s">
-          <code>InstancedMesh</code> sends thousands of copies of the same geometry to the GPU together.
-          Each column gets its own matrix and colour every frame. Move your cursor over the grid to push it up.
-        </p>
-        <ul class="chips reveal" style="--d:.3s">
-          <li>InstancedMesh</li><li>Raycasting</li><li>Per-instance color</li>
-        </ul>
+      <i class="cross cross-l"></i><i class="cross cross-r"></i>
+      <div class="bar"><span><b>02</b> / Instancing</span><span>1,024 instances — 1 draw call</span></div>
+      <div class="section-body">
+        <div class="content">
+          <h2 class="reveal" style="--d:.1s">1,024 columns. <em>One</em> draw call.</h2>
+          <p class="lead reveal" style="--d:.2s">
+            <code>InstancedMesh</code> sends thousands of copies of the same geometry to the GPU together.
+            Each column gets its own matrix and colour every frame. Move your cursor over the grid to push it up.
+          </p>
+          <ul class="chips reveal" style="--d:.3s">
+            <li>InstancedMesh</li><li>Raycasting</li><li>Per-instance color</li>
+          </ul>
+        </div>
       </div>
     </section>
 
     <section id="post" class="section right" data-label="Post-FX">
-      <div class="content">
-        <p class="eyebrow reveal"><b>03</b> Post-processing</p>
-        <h2 class="reveal" style="--d:.1s">Make light bleed.</h2>
-        <p class="lead reveal" style="--d:.2s">
-          <code>EffectComposer</code> renders the scene to a texture first, then runs full-screen passes over it.
-          An <code>UnrealBloomPass</code> picks out the brightest pixels and spreads them into a glow.
-        </p>
-        <ul class="chips reveal" style="--d:.3s">
-          <li>EffectComposer</li><li>UnrealBloomPass</li><li>HDR colour</li>
-        </ul>
+      <i class="cross cross-l"></i><i class="cross cross-r"></i>
+      <div class="bar"><span><b>03</b> / Post-processing</span><span>UnrealBloomPass — HDR glow</span></div>
+      <div class="section-body">
+        <div class="content">
+          <h2 class="reveal" style="--d:.1s">Make light <em>bleed</em>.</h2>
+          <p class="lead reveal" style="--d:.2s">
+            <code>EffectComposer</code> renders the scene to a texture first, then runs full-screen passes over it.
+            An <code>UnrealBloomPass</code> picks out the brightest pixels and spreads them into a glow.
+          </p>
+          <ul class="chips reveal" style="--d:.3s">
+            <li>EffectComposer</li><li>UnrealBloomPass</li><li>HDR colour</li>
+          </ul>
+        </div>
       </div>
     </section>
 
     <section id="outro" class="section center" data-label="Start">
-      <div class="content">
-        <p class="eyebrow reveal">Your turn</p>
-        <h2 class="big reveal" style="--d:.1s">Start with<br>a single cube.</h2>
-        <p class="lead reveal" style="--d:.2s">
-          Every scene here started as a scene, a camera and a renderer. The manual walks you through it, one step at a time.
-        </p>
-        <div class="actions reveal" style="--d:.3s">
-          <a class="btn primary" href="https://threejs.org/manual/#en/fundamentals" target="_blank" rel="noopener">Fundamentals ↗</a>
-          <a class="btn ghost" href="#hero">Back to top</a>
+      <i class="cross cross-l"></i><i class="cross cross-r"></i>
+      <div class="bar"><span><b>04</b> / Your turn</span><span>threejs.org/manual</span></div>
+      <div class="section-body">
+        <div class="content">
+          <h2 class="big reveal" style="--d:.1s">Start with<br>a <em>single</em> cube.</h2>
+          <p class="lead reveal" style="--d:.2s">
+            Every scene here started as a scene, a camera and a renderer. The manual walks you through it, one step at a time.
+          </p>
+          <div class="actions reveal" style="--d:.3s">
+            <a class="btn primary" href="https://threejs.org/manual/#en/fundamentals" target="_blank" rel="noopener">Fundamentals ↗</a>
+            <a class="btn ghost" href="#hero">Back to top</a>
+          </div>
         </div>
       </div>
       <footer class="footer">Built with three.js r170</footer>
@@ -133,6 +171,7 @@
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import Lenis from 'lenis';
 
     /* ---------- Shaders ---------- */
 
@@ -617,31 +656,169 @@
     });
     document.addEventListener('pointerleave', () => pointer.ndc.set(9, 9));
 
-    const scroll = { current: window.scrollY, previous: window.scrollY, velocity: 0 };
+    // Lenis gives the page inertia: the wheel sets a target and the scroll position eases toward it.
+    const lenis = reduceMotion ? null : new Lenis({ lerp: 0.085, smoothWheel: true });
+
+    function scrollToTarget(target) {
+      if (lenis) lenis.scrollTo(target, { duration: 1.6 });
+      else target.scrollIntoView();
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (!target) return;
+        e.preventDefault();
+        scrollToTarget(target);
+      });
+    });
+
+    const scroll = { previous: window.scrollY, velocity: 0 };
     const sectionEls = [...document.querySelectorAll('.section')];
     const progressBar = document.getElementById('progress');
-    const dotsEl = document.getElementById('dots');
+    const navLinks = [...document.querySelectorAll('.nav-links a')];
 
-    const dots = sectionEls.map((section) => {
+    // Map scroll position to a fractional section index (1.5 = halfway between sections 1 and 2),
+    // using real section offsets so sections of any height line up with the 3D objects.
+    let sectionTops = [];
+    function measureSections() {
+      sectionTops = sectionEls.map((el) => el.offsetTop);
+    }
+    function progressAt(y) {
+      const last = sectionTops.length - 1;
+      if (y <= sectionTops[0]) return 0;
+      for (let i = 0; i < last; i++) {
+        if (y < sectionTops[i + 1]) return i + (y - sectionTops[i]) / (sectionTops[i + 1] - sectionTops[i]);
+      }
+      return last + (y - sectionTops[last]) / (sectionEls[last].offsetHeight || window.innerHeight);
+    }
+    measureSections();
+    new ResizeObserver(measureSections).observe(document.body);
+
+    // Rail ruler: one tape marked 0–100% of the page. It slides so the current percentage sits at the fixed needle.
+    const RAIL_PCT = 58; // px of tape per 1% of page
+    const RAIL_PAD = 10; // % of extra tape drawn before 0 and after 100
+    const railTape = document.getElementById('rail-tape');
+    const railNeedle = document.getElementById('rail-needle');
+    railTape.style.height = `${(100 + RAIL_PAD * 2) * RAIL_PCT}px`;
+    const railMarks = [];
+    for (let p = 0; p <= 100; p += 5) {
+      const mark = document.createElement('span');
+      mark.className = 'rail-mark';
+      mark.style.top = `${(p + RAIL_PAD) * RAIL_PCT}px`;
+      mark.textContent = p;
+      railTape.appendChild(mark);
+      railMarks.push({ el: mark, p });
+    }
+    let needleY = 0;
+    const measureNeedle = () => (needleY = railNeedle.offsetTop);
+    measureNeedle();
+    new ResizeObserver(measureNeedle).observe(document.querySelector('.rail'));
+
+    // Section labels: upcoming sections wait in a stack at the bottom of the rail. While you scroll
+    // toward a section its label rises, scroll-linked, and locks at the top; the label it replaces
+    // shrinks into a small line above it. Scrolling back up plays the same motion in reverse.
+    const railLabelsEl = document.getElementById('rail-labels');
+    const railLabels = sectionEls.map((section) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.dataset.label = section.dataset.label;
-      button.setAttribute('aria-label', `Go to ${section.dataset.label}`);
-      button.addEventListener('click', () => section.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }));
-      dotsEl.appendChild(button);
+      button.className = 'rail-label';
+      [...section.dataset.label].forEach((ch, i) => {
+        const letter = document.createElement('span');
+        letter.textContent = ch;
+        letter.style.setProperty('--i', i);
+        button.appendChild(letter);
+      });
+      button.addEventListener('click', () => scrollToTarget(section));
+      railLabelsEl.appendChild(button);
       return button;
     });
 
+    const LABEL_TOP = 56; // where the current label locks
+    const LABEL_PREV = 28; // where the previous label shrinks to
+    const LABEL_SMALL = 0.5; // scale of labels waiting in the stack
+    const LABEL_PREV_SCALE = 0.4;
+    const railLayout = { height: 0, slot: 0 };
+    function measureRailLabels() {
+      railLayout.height = railLabelsEl.clientHeight;
+      const fontSize = parseFloat(getComputedStyle(railLabels[0]).fontSize) || 34;
+      railLayout.slot = fontSize * LABEL_SMALL * 1.3;
+    }
+    measureRailLabels();
+    new ResizeObserver(measureRailLabels).observe(railLabelsEl);
+
+    const clamp01 = (v) => Math.min(Math.max(v, 0), 1);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const smooth = (t) => t * t * (3 - 2 * t);
+
+    function updateRailLabels(progress) {
+      if (!railLayout.height) return; // rail labels hidden on this screen size
+      const n = railLabels.length;
+      railLabels.forEach((label, i) => {
+        const arrive = i === 0 ? 1 : clamp01(progress - (i - 1)); // 0 = in the stack, 1 = locked at top
+        const pushed = clamp01(progress - i); // next label arriving shrinks this one
+        const gone = clamp01(progress - (i + 1)); // the one after that clears it away
+        const stackY = railLayout.height - 28 - (n - i) * railLayout.slot;
+        const e = smooth(arrive);
+        const p = smooth(pushed);
+        const y = lerp(stackY, LABEL_TOP, e) - (LABEL_TOP - LABEL_PREV) * p - 24 * gone;
+        const scale = lerp(LABEL_SMALL, 1, e) * lerp(1, LABEL_PREV_SCALE, p);
+        const opacity = lerp(0.55, 1, e) * lerp(1, 0.5, p) * (1 - gone);
+        label.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
+        label.style.opacity = opacity.toFixed(3);
+        label.style.visibility = opacity < 0.01 ? 'hidden' : 'visible';
+        label.classList.toggle('current', arrive >= 1 && pushed < 0.5);
+      });
+    }
+
+    // Letters bounce once when a label locks into place.
+    function landRailLabel(index) {
+      const label = railLabels[index];
+      label.classList.remove('land');
+      void label.offsetWidth; // restart the animation
+      label.classList.add('land');
+    }
+
+    const railDir = document.getElementById('rail-dir');
+
+    const readout = document.getElementById('readout');
+    const ticker = document.getElementById('ticker');
+    ticker.innerHTML += ticker.innerHTML; // two copies so the loop is seamless
+    const tickerState = { x: 0, dir: 1 };
+
     let activeIndex = -1;
-    function updateDom(sectionProgress) {
+    function updateDom(sectionProgress, dt) {
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      progressBar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
-      const index = Math.min(sections.length - 1, Math.max(0, Math.round(sectionProgress)));
+      const pageProgress = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+      progressBar.style.transform = `scaleX(${pageProgress})`;
+      const pct = pageProgress * 100;
+      readout.textContent = `${String(Math.round(pct)).padStart(3, '0')}%`;
+      const tapeY = needleY - (pct + RAIL_PAD) * RAIL_PCT;
+      railTape.style.transform = `translate3d(0, ${tapeY.toFixed(2)}px, 0)`;
+      // Hide the label sitting under the needle so it doesn't collide with the readout.
+      railMarks.forEach(({ el, p }) => el.classList.toggle('near', Math.abs(pct - p) < 0.8));
+
+      const moving = Math.abs(scroll.velocity) > 20;
+      railDir.classList.toggle('moving', moving);
+      if (moving) railDir.classList.toggle('up', scroll.velocity < 0);
+
+      updateRailLabels(sectionProgress);
+
+      const index = Math.min(sectionEls.length - 1, Math.max(0, Math.round(sectionProgress)));
       if (index !== activeIndex) {
-        dots[activeIndex]?.classList.remove('active');
-        dots[index].classList.add('active');
+        if (activeIndex !== -1) landRailLabel(index);
+        navLinks.forEach((link) => link.classList.toggle('active', Number(link.dataset.index) === index));
         activeIndex = index;
       }
+
+      // Ticker drifts on its own, speeds up with scroll and follows the scroll direction.
+      if (Math.abs(scroll.velocity) > 20) tickerState.dir = Math.sign(scroll.velocity);
+      const speed = (40 + Math.min(Math.abs(scroll.velocity) * 0.35, 900)) * TIME_SCALE;
+      const half = ticker.scrollWidth / 2;
+      tickerState.x -= speed * tickerState.dir * dt;
+      if (tickerState.x <= -half) tickerState.x += half;
+      if (tickerState.x > 0) tickerState.x -= half;
+      ticker.style.transform = `translate3d(${tickerState.x.toFixed(2)}px, 0, 0)`;
     }
 
     const observer = new IntersectionObserver(
@@ -683,17 +860,17 @@
       return current + (target - current) * (1 - Math.exp(-lambda * dt));
     }
 
-    function tick() {
+    function tick(time = performance.now()) {
       const dt = Math.min(clock.getDelta(), 0.05);
       elapsed += dt * TIME_SCALE;
       const t = elapsed;
 
-      // Scroll → camera height. Sections are one viewport tall, so one viewport of scroll = SPACING world units.
-      const sectionHeight = sectionEls[0].offsetHeight || window.innerHeight;
-      scroll.current = reduceMotion ? window.scrollY : damp(scroll.current, window.scrollY, 7, dt);
-      scroll.velocity = (scroll.current - scroll.previous) / Math.max(dt, 1e-4);
-      scroll.previous = scroll.current;
-      const sectionProgress = scroll.current / sectionHeight;
+      // Scroll → camera height: each section is one screen of world (SPACING units).
+      lenis?.raf(time);
+      const y = window.scrollY;
+      scroll.velocity = (y - scroll.previous) / Math.max(dt, 1e-4);
+      scroll.previous = y;
+      const sectionProgress = progressAt(y);
       rig.position.y = -sectionProgress * SPACING;
 
       // Pointer parallax.
@@ -753,7 +930,7 @@
       particleMaterial.uniforms.uTime.value = t;
       particles.rotation.y = pointer.smooth.x * 0.04;
 
-      updateDom(sectionProgress);
+      updateDom(sectionProgress, dt);
       composer.render();
 
       if (firstFrame) {
